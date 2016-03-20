@@ -13,9 +13,7 @@ typedef enum subSTATE{waiting, finding, following};
 
 void setup()
 {
-	
-	
-	
+	
 }
 
 void loop()
@@ -33,7 +31,7 @@ void loop()
 				switch(subSTATE)
 				{
 					case(waiting):
-						//do nothing
+						//do nothing until the button is pushed again
 						break;
 					case(finding):
 						if(elevation.phase_found("p"))	//the phase shift offset has been updated for pitch
@@ -43,9 +41,9 @@ void loop()
 						}
 						break;
 					case(following):	//Update the position values
-						pitchCommand = elevation.find_command("p");
-						pitchPosition = elevation.state(eCount);
-						pitchControl = elevation.position_pid(pitchCommand, pitchPosition, flag);
+						pitchCommand = elevation.follow_command("p");
+						pitchPosition = elevation.state(eleCount, "p");
+						pitchControl = elevation.pid(pitchCommand, pitchPosition, flag);
 						elevation.move(pitchControl);
 						if(pitchFlag)
 						{
@@ -109,7 +107,7 @@ void button2()
 	else if(STATE == pitching)
 	{
 		subState = finding;
-		time = 0.0;
+		elevation._time = 0.0;
 	}
 	else
 	{
@@ -131,7 +129,7 @@ void button3()
 	else if(STATE == yawing)
 	{
 		subState = finding;
-		time = 0.0;
+		azimuth._time = 0.0;
 	}
 	else
 	{
@@ -153,7 +151,7 @@ void button4()
 	else if(STATE == rolling)
 	{
 		subState = finding;
-		time = 0.0;
+		elevation._time = 0.0;
 	}
 	else
 	{
