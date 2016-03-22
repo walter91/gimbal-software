@@ -84,19 +84,7 @@ void setup() {
 	count1 = 0;	//Initialize encoder count
 	count2 = 0;	//Initialize encoder count
 	
-	pinMode(enc1A, INPUT_PULLUP);	//Setup pin for encoder channel. Pullup for non-totempole output
-	pinMode(enc1B, INPUT_PULLUP);	//Setup pin for encoder channel. Pullup for non-totempole output
-	enc1AState = digitalRead(enc1A);	//Initialize encoder state
-	enc1BState = digitalRead(enc1B);	//Initialize encoder state
-	attachInterrupt(digitalPinToInterrupt(enc1A), enc1A_changed, CHANGE);	//Setup interrupt for background proccessing
-    attachInterrupt(digitalPinToInterrupt(enc1B), enc1B_changed, CHANGE);	//Setup interrupt for background proccessing
 	
-	pinMode(enc2A, INPUT_PULLUP);	//Setup pin for encoder channel. Pullup for non-totempole output
-	pinMode(enc2B, INPUT_PULLUP);	//Setup pin for encoder channel. Pullup for non-totempole output
-	enc2AState = digitalRead(enc2A);	//Initialize encoder state
-	enc2BState = digitalRead(enc2B);	//Initialize encoder state
-	attachInterrupt(digitalPinToInterrupt(enc2A), enc2A_changed, CHANGE);	//Setup interrupt for background proccessing
-    attachInterrupt(digitalPinToInterrupt(enc2B), enc2B_changed, CHANGE);	//Setup interrupt for background proccessing
 
 	motor1.set_precision(pwmBits, adcBits);
 	motor2.set_precision(pwmBits, adcBits);

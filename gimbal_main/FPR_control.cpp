@@ -4,6 +4,9 @@
 #include <math.h>
 #include "L3G.h"
 
+#define SCALE 5
+#define OMEGA 2
+
 FPR_control::FPR_control(void)
 {
 	//nothing yet
@@ -11,10 +14,10 @@ FPR_control::FPR_control(void)
 
 void FPR_control::begin()
 {
-	//nothing yet	
+	_minNumber = 0;
 }
 
-void FPR_control::set_time_filter(float Ts, float alpha, float tau, char type)
+void FPR_control::set_time_filter(float Ts, float alpha, float tau)
 {
 	_Ts = Ts;
 	_alpha = alpha;
@@ -22,7 +25,7 @@ void FPR_control::set_time_filter(float Ts, float alpha, float tau, char type)
 	
 }
 
-void FPR_control::set_gains(float kp, float ki, float kd, char type)
+void FPR_control::set_gains(float kp, float ki, float kd)
 {
 	_kp = kp;
 	_ki = ki;
@@ -36,18 +39,18 @@ void FPR_control::set_precision(int pwmBits, int adcBits)
 	_adcBits = adcBits;
 	
 	//ADC and PWM precision
-	analogWriteResolution(pwmBits);
-	analogReadResolution(adcBits);
+	analogWriteResolution(_pwmBits);
+	analogReadResolution(_adcBits);
 	
 }
 
-void FPR_control::set_antiwindup(float intThreshHigh, float intThreshLow, char type)
+void FPR_control::set_antiwindup(float intThreshHigh, float intThreshLow)
 {
 	_intThreshHigh = intThreshHigh;
 	_intThreshLow = intThreshLow;
 }
 
-float FPR_control::position(float state, float command, bool flag)
+float FPR_control::pid(float state, float command, bool flag)
 {
 	
 	if(flag)
@@ -108,25 +111,56 @@ float FPR_control::saturate(float input, float highLimit, float lowLimit)
 }
 
 
+void FPR_control::dir(float control)
+{
+	bool dir;
 
+	if(control >= 0)
+	{
+		dir = 0;
+	}
+	else
+	{
+		dir = 1;
+	}
+	
+	digitalWrite(_dirPin, dir);
+}
+
+
+void FPR_control::pwm(float control)
+{
+	analogWrite(_pwmPin, saturate((pow(2.0,_pwmBits)-1)*abs(control), pow(2.0,_pwmBits)-1, 0.0));
+}
+
+
+void FPR_control::stop()
+{
+	analogWrite(_pwmPin, 0);
+	
+}
+
+/*
 bool FPR_control::phase_found(char mode)
 {
 	bool flag = false;
+	float _gyroPosition;
 
-	switch(mode)
+	if(mode == 'p')
 	{
-		case "p":
-			ition = gyroPos[0];
-			break;
-		case "r":
-			ition = gyroPos[1];
-			break;
-		case "y":
-			ition = gyroPos[2];
-			break;
+		_gyroPosition = _gyroPos[0];
+	}
+	else if(mode == 'y')
+	{
+		_gyroPosition = _gyroPos[1];
+	}
+	else //mode == "r"
+	{
+		_gyroPosition = _gyroPos[2];
 	}
 
-	switch(minNumber)
+
+	switch(_minNumber)
 	{
 		case(0):
 			//fill _searchPos[1]
@@ -165,20 +199,38 @@ bool FPR_control::phase_found(char mode)
 
 float FPR_control::follow_command(char mode)
 {
-	switch(mode)
+	float _gyroPosition;
+
+	if(mode == 'p')
 	{
-		case "p":
-			ition = gyroPos[0];
-			break;
-		case "r":
-			ition = gyroPos[1];
-			break;
-		case "y":
-			ition = gyroPos[2];
-			break;
+		_gyroPosition = _gyroPos[0];
+	}
+	else if(mode == 'y')
+	{
+		_gyroPosition = _gyroPos[1];
+	}
+	else //mode == "r"
+	{
+		_gyroPosition = _gyroPos[2];
 	}
 
-	tablePos = SCALE*sin(OMEGA*(_time + _phaseShift));
+	_tablePos = SCALE*sin(OMEGA*(_time + _phaseShift));
 	
-	return( tablePos*(1.0 - _tableAlpha) + ition*_tableAlpha );
+	return( _tablePos*(1.0 - _tableAlpha) + _gyroPosition*_tableAlpha );
 }
+
+
+void FPR_control::add_time(unsigned long milliseconds)
+{
+	_time = _time + (milliseconds/1000.0);
+}
+
+
+void FPR_control::update_gyroPos(float xPos, float yPos, float zPos)
+{
+	_gyroPos[0] = xPos;
+	_gyroPos[1] = yPos;
+	_gyroPos[2] = zPos;
+}
+
+*/
