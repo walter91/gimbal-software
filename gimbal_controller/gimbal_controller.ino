@@ -34,7 +34,7 @@ long count1, count2;	//Global variables to track position of motors (encoders)
 
 float adcBits = 12.0;
 float pwmBits = 12.0;
-float encoder1CPR = 4741.44;
+float encoder1CPR = 979.62;
 float encoder2CPR = 4741.44;
 
 float ang[] = {0.0, 0.0};
@@ -104,13 +104,13 @@ void loop()
 	bool flag2 = true;	//Is this the first time through?
 	
 	//Conditions for Kp calculation
-	const float maxErrorDeg1 = 15.0;
+	const float maxErrorDeg1 = 45.0;
 	const float maxErrorDeg2 = 15.0;
 	
 	//Constant variables for PID algorithm
 	const float kp1 = 1.0/maxErrorDeg1;
 	const float ki1 = 0.0;
-	const float kd1 = 0.01;
+	const float kd1 = 0.0;
 	
 	//Constant variables for PID algorithm
 	const float kp2 = 1.0/maxErrorDeg2;

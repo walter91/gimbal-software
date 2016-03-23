@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 #include <math.h>
-#include "L3G.h"
 
 #define SCALE 5
 #define OMEGA 2
@@ -130,7 +129,13 @@ void FPR_control::dir(float control)
 
 void FPR_control::pwm(float control)
 {
-	analogWrite(_pwmPin, saturate((pow(2.0,_pwmBits)-1)*abs(control), pow(2.0,_pwmBits)-1, 0.0));
+	float controlEffort = 4095.0*abs(control);
+
+	//controlEffort = saturate(controlEffort, 4095.0 , 0.0);
+
+	Serial.println(controlEffort);
+
+	analogWrite(_pwmPin, controlEffort);
 }
 
 

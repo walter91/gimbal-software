@@ -26,7 +26,7 @@ char report[80];
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Wire.begin();
 
   if (!imu.init())
@@ -39,7 +39,7 @@ void setup()
 
 void loop()
 {
-    int Ts = 10;
+    int Ts = 2;
     float alpha = .05;
     unsigned long loopTime, lastLoop;
     float eulerAng[] = {0.0, 0.0, 0.0};
@@ -77,7 +77,8 @@ void loop()
             theta = eulerAng[1];
             psi = eulerAng[2];
 
-            //Serial.println(millis());
+            Serial.println(millis());
+            Serial.print("\t");
             Serial.print(phi);
             Serial.print("\t");
             Serial.print(theta);

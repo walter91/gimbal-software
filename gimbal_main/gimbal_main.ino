@@ -69,9 +69,6 @@ void setup()
 	B_el_state = digitalRead(B_el);	//Initialize encoder state
 	attachInterrupt(digitalPinToInterrupt(A_el), A_el_changed, CHANGE);	//Setup interrupt for background proccessing
     attachInterrupt(digitalPinToInterrupt(B_el), B_el_changed, CHANGE);	//Setup interrupt for background proccessing
-
-
-
 }
 
 void loop()
@@ -93,8 +90,8 @@ void loop()
 	const float intThreshHigh = 1.25;
 	const float intThreshLow = 0.025;
 
-	unsigned long Ts = 2;
-	unsigned long Ts_w = 500;
+	unsigned long Ts = 5;
+	unsigned long Ts_w = 2000;
 	unsigned long lastLoopTime, loopTime, lastWriteLoopTime, writeLoopTime;
 
 	float eulerAng[] = {0.0, 0.0, 0.0};
@@ -111,7 +108,7 @@ void loop()
 	float position_e, position_a;
 	float control_e, control_a;
 
-	float com, pos;
+	float com_e, pos_e, com_a, pos_a;
 
 	float pitchControl, pitchCommand, pitchPosition;
 	float rollControl, rollCommand, rollPosition;
@@ -135,6 +132,10 @@ void loop()
 		loopTime = millis() - lastLoopTime;
 		if(loopTime >= Ts)
 		{
+			if(Serial.available())
+			{
+				determine_mode();
+			}
 
 			lastLoopTime = millis();
             imu.read();
@@ -170,12 +171,15 @@ void loop()
 					azimuth.pwm(control_a);
 
 					motorAng_e = (float(count_el)*360.0)/(encoderCPR_e);
-					spread = SPREAD_0 + THREAD_PITCH/(motorAng_e/360.0);	//Positive motor motion increases the spread
+					spread = SPREAD_0 + THREAD_PITCH*(motorAng_e/360.0);	//Positive motor motion increases the spread
 					height = 4.0*sqrt(LENGTH_HALF_SQ - pow(spread/2.0, 0.5));
 					position_e = 90.0 - (((11.0 - height)/11.0)*105.0);
 					
-					com = command_e;
-					pos = position_e;
+					com_e = command_e;
+					pos_e = position_e;
+
+					com_a = command_a;
+					pos_a = position_a;
 
 					pitchControl = elevation.pid(command_e, position_e, flag);
 					elevation.dir(control_e);
@@ -197,12 +201,12 @@ void loop()
 						case(following):	//Update the position values
 							pitchCommand = -1.0*eulerAng[0];
 							motorAng_e = (float(count_el)*360.0)/(encoderCPR_e);
-							spread = SPREAD_0 + THREAD_PITCH/(motorAng_e/360.0);	//Positive motor motion increases the spread
+							spread = SPREAD_0 + THREAD_PITCH*(motorAng_e/360.0);	//Positive motor motion increases the spread
 							height = 4.0*sqrt(LENGTH_HALF_SQ - pow(spread/2.0, 0.5));
 							pitchPosition = 90.0 - (((11.0 - height)/11.0)*105.0);
 							
-							com = pitchCommand;
-							pos = pitchPosition;
+							com_e = pitchCommand;
+							pos_e = pitchPosition;
 
 							pitchControl = elevation.pid(pitchCommand, pitchPosition, flag);
 							elevation.dir(pitchControl);
@@ -224,12 +228,12 @@ void loop()
 						case(following):	//Update the position values
 							rollCommand = -1.0*eulerAng[1];
 							motorAng_e = (float(count_el)*360.0)/(encoderCPR_e);
-							spread = SPREAD_0 + THREAD_PITCH/(motorAng_e/360.0);	//Positive motor motion increases the spread
+							spread = SPREAD_0 + THREAD_PITCH*(motorAng_e/360.0);	//Positive motor motion increases the spread
 							height = 4.0*sqrt(LENGTH_HALF_SQ - pow(spread/2.0, 0.5));
 							rollPosition = 90.0 - (((11.0 - height)/11.0)*105.0);
 							
-							com = rollCommand;
-							pos = rollPosition;
+							com_e = rollCommand;
+							pos_e = rollPosition;
 
 							rollControl = elevation.pid(rollCommand, rollPosition, flag);
 							elevation.dir(rollControl);
@@ -253,8 +257,8 @@ void loop()
 							motorAng_a = (float(count_az)*360.0)/(encoderCPR_a);
 							yawPosition = -1.0*motorAng_a/GEAR_RATIO;
 							
-							pos = yawPosition;
-							com = yawCommand;
+							pos_a = yawPosition;
+							com_a = yawCommand;
 
 							yawControl = azimuth.pid(yawCommand, yawPosition, flag);
 							azimuth.dir(yawControl);
@@ -273,11 +277,18 @@ void loop()
 		writeLoopTime = millis() - lastWriteLoopTime;
 		if(writeLoopTime >= Ts_w)
 		{
-			Serial.print("DOF Command: "); Serial.print(com);
+			Serial.print("El. Com: "); Serial.print(com_e);
 			Serial.print("\t");
-			Serial.print("DOF Pos: "); Serial.println(pos);
+			Serial.print("El. Pos: "); Serial.print(pos_e);
 			Serial.print("\t");
-			Serial.print("DOF Error: "); Serial.println(com - pos);
+			Serial.print("El. Err: "); Serial.println(com_e - pos_e);
+			//Serial.println("");
+			Serial.print("Az. Com: "); Serial.print(com_a);
+			Serial.print("\t");
+			Serial.print("Az. Pos: "); Serial.print(pos_a);
+			Serial.print("\t");
+			Serial.print("Az. Err: "); Serial.println(com_a - pos_a);
+			Serial.println("");
 			Serial.println("");
 			lastWriteLoopTime = millis();
 		}
@@ -308,16 +319,22 @@ void button2()
 		STATE = pitching;	//Update the state
 		subSTATE = waiting;	//Wait for second button push before starting anything
 		zero_az();		//Make the current position zero for the azimuth encoder
+		Serial.print("\t");
+		Serial.println("waiting");
 	}
 	else if(STATE == pitching)
 	{
 		if(subSTATE == waiting)
 		{
 			subSTATE = following;
+			Serial.print("\t");
+			Serial.println("following");
 		}
 		else
 		{
 			subSTATE = waiting;
+			Serial.print("\t");
+			Serial.println("waiting");
 		}
 	}
 	else
@@ -334,16 +351,22 @@ void button3()
 		STATE = yawing;	//Update the state
 		subSTATE = waiting;	//Wait for second button push before starting anything
 		zero_az();		//Make the current position zero for the encoders
+		Serial.print("\t");
+		Serial.println("waiting");
 	}
 	else if(STATE == yawing)
 	{
 		if(subSTATE == waiting)
 		{
 			subSTATE = following;
+			Serial.print("\t");
+			Serial.println("Following");
 		}
 		else
 		{
 			subSTATE = waiting;
+			Serial.print("\t");
+			Serial.println("waiting");
 		}
 	}
 	else
@@ -360,16 +383,22 @@ void button4()
 		STATE = rolling;	//Update the state
 		subSTATE = waiting;	//Wait for second button push before starting anything
 		zero_az();		//Make the current position zero for the azimuth encoder
+		Serial.print("\t");
+		Serial.println("waiting");
 	}
 	else if(STATE == rolling)
 	{
 		if(subSTATE == waiting)
 		{
 			subSTATE = following;
+			Serial.print("\t");
+			Serial.println("following");
 		}
 		else
 		{
 			subSTATE = waiting;
+			Serial.print("\t");
+			Serial.println("waiting");
 		}
 	}
 	else
@@ -622,4 +651,30 @@ void B_el_changed()
 void zero_az()
 {
 	count_az = 0;
+}
+
+void determine_mode()
+{
+	int firstChar = Serial.read();
+
+	if(firstChar == 'd' || firstChar == 'D')
+	{
+		button1();
+		Serial.println("Mode = Direct");
+	}
+	else if(firstChar == 'p' || firstChar == 'P')
+	{
+		button2();
+		Serial.print("Mode = Pitch");
+	}
+	else if(firstChar == 'y' || firstChar == 'Y')
+	{
+		button3();
+		Serial.print("Mode = Yaw");
+	}
+	else if(firstChar == 'r' || firstChar == 'R')
+	{
+		button4();
+		Serial.print("Mode = Roll");
+	}
 }
